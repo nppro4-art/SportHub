@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0f1e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>SportHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #070c1a;
+    --surface: #0e1628;
+    --surface2: #141e35;
+    --border: #1e2d4a;
+    --accent: #00e5ff;
+    --accent2: #ff6b35;
+    --accent3: #7fff6b;
+    --text: #e8f0ff;
+    --text2: #7a8db0;
+    --run: #ff6b35;
+    --walk: #00e5ff;
+    --bike: #7fff6b;
+    --hike: #ffcc00;
+    --font: 'Syne', sans-serif;
+    --mono: 'DM Mono', monospace;
+    --radius: 16px;
+    --shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font); }
+
+  /* LAYOUT */
+  #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+  #main { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px; padding-bottom: 80px; }
+  #main::-webkit-scrollbar { display: none; }
+
+  /* NAV */
+  nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(14,22,40,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: flex; z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 4px; padding: 10px 0; border: none; background: none;
+    color: var(--text2); font-family: var(--font); font-size: 10px;
+    font-weight: 600; letter-spacing: 0.5px; cursor: pointer;
+    transition: color 0.2s; text-transform: uppercase;
+  }
+  .nav-btn svg { width: 22px; height: 22px; }
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn.active svg { filter: drop-shadow(0 0 6px var(--accent)); }
+
+  /* SCREENS */
+  .screen { display: none; animation: fadeIn 0.3s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* HEADER */
+  .page-header { margin-bottom: 20px; }
+  .page-header h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
+  .page-header p { color: var(--text2); font-size: 13px; font-family: var(--mono); margin-top: 2px; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px;
+    margin-bottom: 12px;
+  }
+  .card-sm { padding: 12px 14px; }
+
+  /* STAT GRID */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 12px;
+    position: relative; overflow: hidden;
+  }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .stat-card.c1::before { background: var(--accent); }
+  .stat-card.c2::before { background: var(--accent2); }
+  .stat-card.c3::before { background: var(--accent3); }
+  .stat-card.c4::before { background: var(--hike); }
+  .stat-label { font-size: 10px; font-family: var(--mono); color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
+  .stat-value { font-size: 24px; font-weight: 800; margin-top: 4px; line-height: 1; }
+  .stat-unit { font-size: 12px; color: var(--text2); font-weight: 400; }
+
+  /* ACTIVITY TYPE BADGE */
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; font-family: var(--mono);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .badge.marche { background: rgba(0,229,255,0.12); color: var(--walk); border: 1px solid rgba(0,229,255,0.3); }
+  .badge.course { background: rgba(255,107,53,0.12); color: var(--run); border: 1px solid rgba(255,107,53,0.3); }
+  .badge.velo { background: rgba(127,255,107,0.12); color: var(--bike); border: 1px solid rgba(127,255,107,0.3); }
+  .badge.randonnee { background: rgba(255,204,0,0.12); color: var(--hike); border: 1px solid rgba(255,204,0,0.3); }
+
+  /* ACTIVITY LIST */
+  .activity-item {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px;
+    margin-bottom: 10px; cursor: pointer;
+    transition: border-color 0.2s, transform 0.1s;
+    position: relative; overflow: hidden;
+  }
+  .activity-item:active { transform: scale(0.99); }
+  .activity-item .color-bar {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 3px 0 0 3px;
+  }
+  .activity-item .ai-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; padding-left: 8px; }
+  .activity-item .ai-name { font-weight: 700; font-size: 15px; }
+  .activity-item .ai-date { font-size: 11px; color: var(--text2); font-family: var(--mono); }
+  .activity-item .ai-stats { display: flex; gap: 16px; padding-left: 8px; flex-wrap: wrap; }
+  .activity-item .ai-stat { text-align: center; }
+  .activity-item .ai-stat-val { font-size: 16px; font-weight: 700; font-family: var(--mono); }
+  .activity-item .ai-stat-lbl { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* CHART */
+  .chart-wrap { position: relative; width: 100%; }
+  canvas { width: 100% !important; }
+
+  /* FORM */
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 11px; font-family: var(--mono); color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; display: block; }
+  .form-input, .form-select {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; color: var(--text);
+    font-family: var(--font); font-size: 15px; outline: none;
+    transition: border-color 0.2s;
+    appearance: none; -webkit-appearance: none;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--accent); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* BUTTONS */
+  .btn {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    font-family: var(--font); font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px;
+  }
+  .btn-primary { background: var(--accent); color: var(--bg); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-danger { background: rgba(255,50,50,0.15); color: #ff5050; border: 1px solid rgba(255,50,50,0.3); }
+  .btn-sm { padding: 8px 16px; width: auto; font-size: 13px; border-radius: 8px; }
+
+  /* TRACKER */
+  .tracker-display {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 24px; text-align: center; margin-bottom: 16px;
+  }
+  .tracker-time { font-size: 52px; font-weight: 800; font-family: var(--mono); letter-spacing: -2px; line-height: 1; }
+  .tracker-dist { font-size: 28px; font-weight: 700; color: var(--accent); margin-top: 8px; font-family: var(--mono); }
+  .tracker-stats { display: flex; justify-content: center; gap: 24px; margin-top: 16px; }
+  .tracker-stat { text-align: center; }
+  .tracker-stat-val { font-size: 18px; font-weight: 700; font-family: var(--mono); }
+  .tracker-stat-lbl { font-size: 10px; color: var(--text2); text-transform: uppercase; }
+  .tracker-btns { display: flex; gap: 10px; }
+
+  /* PULSE INDICATOR */
+  .pulse-dot {
+    display: inline-block; width: 8px; height: 8px;
+    background: var(--accent3); border-radius: 50%;
+    animation: pulse 1.5s infinite;
+    margin-right: 6px;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  /* TYPE SELECTOR */
+  .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .type-btn {
+    padding: 12px 8px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text2); font-family: var(--font);
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .type-btn.selected-marche { border-color: var(--walk); color: var(--walk); background: rgba(0,229,255,0.08); }
+  .type-btn.selected-course { border-color: var(--run); color: var(--run); background: rgba(255,107,53,0.08); }
+  .type-btn.selected-velo { border-color: var(--bike); color: var(--bike); background: rgba(127,255,107,0.08); }
+  .type-btn.selected-randonnee { border-color: var(--hike); color: var(--hike); background: rgba(255,204,0,0.08); }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px); z-index: 200; align-items: flex-end;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 24px 24px 0 0; padding: 20px; width: 100%;
+    max-height: 90vh; overflow-y: auto;
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+  .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 16px; }
+
+  /* GPX IMPORT */
+  .gpx-drop {
+    border: 2px dashed var(--border); border-radius: 14px;
+    padding: 32px 20px; text-align: center; cursor: pointer;
+    transition: border-color 0.2s; margin-bottom: 14px;
+  }
+  .gpx-drop:hover, .gpx-drop.drag-over { border-color: var(--accent); }
+  .gpx-drop svg { width: 40px; height: 40px; color: var(--text2); margin-bottom: 10px; }
+  .gpx-drop p { color: var(--text2); font-size: 14px; }
+  .gpx-drop strong { color: var(--text); display: block; margin-bottom: 4px; font-size: 15px; }
+  #gpx-input { display: none; }
+
+  /* PROFILE */
+  .profile-avatar {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 800; margin: 0 auto 16px;
+  }
+
+  /* EMPTY STATE */
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--text2); }
+  .empty-state svg { width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.4; }
+  .empty-state p { font-size: 14px; }
+
+  /* SECTION TITLE */
+  .section-title { font-size: 13px; font-family: var(--mono); color: var(--text2); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; margin-top: 4px; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 6px; margin-bottom: 16px; overflow-x: auto; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border);
+    background: none; color: var(--text2); font-family: var(--font);
+    font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .tab.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 999px;
+    padding: 10px 20px; font-size: 13px; z-index: 300;
+    opacity: 0; transition: all 0.3s; pointer-events: none; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* WEEK BARS */
+  .week-bars { display: flex; align-items: flex-end; gap: 4px; height: 80px; margin-top: 8px; }
+  .week-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; }
+  .week-bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 2px; transition: height 0.5s ease; }
+  .week-bar-lbl { font-size: 9px; color: var(--text2); font-family: var(--mono); }
+
+  /* ONBOARDING */
+  #onboarding {
+    position: fixed; inset: 0; background: var(--bg); z-index: 500;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 24px;
+  }
+  .onboard-logo { font-size: 48px; font-weight: 800; letter-spacing: -2px; margin-bottom: 8px; }
+  .onboard-logo span { color: var(--accent); }
+  .onboard-sub { color: var(--text2); font-family: var(--mono); font-size: 13px; margin-bottom: 40px; }
+  #onboarding .card { width: 100%; }
+
+  /* DETAIL MODAL */
+  .detail-stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .detail-stat { background: var(--surface2); border-radius: 10px; padding: 10px; text-align: center; }
+  .detail-stat-val { font-size: 18px; font-weight: 800; font-family: var(--mono); }
+  .detail-stat-lbl { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+  .delete-btn { position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--text2); cursor: pointer; padding: 4px; }
+
+  .progress-ring-wrap { display: flex; justify-content: center; margin: 12px 0; }
+</style>
+</head>
+<body>
+
+<!-- ONBOARDING -->
+<div id="onboarding">
+  <div class="onboard-logo">Sport<span>Hub</span></div>
+  <div class="onboard-sub">Ton hub sportif personnel</div>
+  <div class="card" style="width:100%;max-width:400px;">
+    <div class="section-title">Ton profil</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Prénom</label>
+        <input class="form-input" id="ob-name" placeholder="Ex: Lucas">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Âge</label>
+        <input class="form-input" id="ob-age" type="number" placeholder="25">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Poids (kg)</label>
+        <input class="form-input" id="ob-weight" type="number" placeholder="70">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Taille (cm)</label>
+        <input class="form-input" id="ob-height" type="number" placeholder="175">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Sexe</label>
+      <select class="form-select" id="ob-sex">
+        <option value="M">Homme</option>
+        <option value="F">Femme</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="saveProfile()">Commencer →</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none">
+  <div id="main">
+
+    <!-- DASHBOARD -->
+    <div id="screen-dash" class="screen active">
+      <div class="page-header">
+        <h1 id="dash-greeting">Bonjour 👋</h1>
+        <p id="dash-date" style="font-family:var(--mono);color:var(--text2);font-size:12px;margin-top:2px;"></p>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card c1">
+          <div class="stat-label">Activités</div>
+          <div class="stat-value" id="total-sessions">0</div>
+        </div>
+        <div class="stat-card c2">
+          <div class="stat-label">Distance</div>
+          <div class="stat-value" id="total-distance">0<span class="stat-unit">km</span></div>
+        </div>
+        <div class="stat-card c3">
+          <div class="stat-label">Calories</div>
+          <div class="stat-value" id="total-cal">0<span class="stat-unit">kcal</span></div>
+        </div>
+        <div class="stat-card c4">
+          <div class="stat-label">Temps total</div>
+          <div class="stat-value" id="total-time">0<span class="stat-unit">h</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Calories — 7 derniers jours</div>
+        <div class="week-bars" id="week-bars"></div>
+        <div style="display:flex;gap:4px;margin-top:4px;" id="week-labels"></div>
+      </div>
+
+      <div class="section-title">Activités récentes</div>
+      <div id="recent-list"></div>
+    </div>
+
+    <!-- ACTIVITÉS -->
+    <div id="screen-activities" class="screen">
+      <div class="page-header">
+        <h1>Activités</h1>
+        <p id="act-count">0 activités enregistrées</p>
+      </div>
+      <div class="tabs" id="filter-tabs">
+        <button class="tab active" data-filter="all">Tout</button>
+        <button class="tab" data-filter="randonnee">🥾 Rando</button>
+        <button class="tab" data-filter="marche">🚶 Marche</button>
+        <button class="tab" data-filter="course">🏃 Course</button>
+        <button class="tab" data-filter="velo">🚴 Vélo</button>
+      </div>
+      <div id="activities-list"></div>
+    </div>
+
+    <!-- AJOUTER -->
+    <div id="screen-add" class="screen">
+      <div class="page-header">
+        <h1>Ajouter</h1>
+        <p>Importe un GPX ou saisis manuellement</p>
+      </div>
+
+      <!-- GPX IMPORT -->
+      <div class="card">
+        <div class="section-title">📂 Import GPX (Visorando, etc.)</div>
+        <div class="gpx-drop" id="gpx-drop" onclick="document.getElementById('gpx-input').click()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          <strong>Glisse ton fichier ici</strong>
+          <p>ou tape pour choisir un fichier .gpx</p>
+        </div>
+        <input type="file" id="gpx-input" accept=".gpx" onchange="handleGPX(this)">
+      </div>
+
+      <!-- GPS TRACKER -->
+      <div class="card" id="tracker-card">
+        <div class="section-title">📍 Tracker GPS en direct</div>
+        <div class="section-title" style="margin-bottom:8px;">Type d'activité</div>
+        <div class="type-grid" id="tracker-type-grid">
+          <button class="type-btn selected-marche" data-type="marche" onclick="selectTrackerType('marche')">🚶 Marche</button>
+          <button class="type-btn" data-type="course" onclick="selectTrackerType('course')">🏃 Course</button>
+          <button class="type-btn" data-type="velo" onclick="selectTrackerType('velo')">🚴 Vélo</button>
+          <button class="type-btn" data-type="randonnee" onclick="selectTrackerType('randonnee')">🥾 Rando</button>
+        </div>
+        <div class="tracker-display">
+          <div class="tracker-time" id="tracker-time">00:00:00</div>
+          <div class="tracker-dist" id="tracker-dist">0.00 km</div>
+          <div class="tracker-stats">
+            <div class="tracker-stat">
+              <div class="tracker-stat-val" id="tracker-speed">0.0</div>
+              <div class="tracker-stat-lbl">km/h</div>
+            </div>
+            <div class="tracker-stat">
+              <div class="tracker-stat-val" id="tracker-cal">0</div>
+              <div class="tracker-stat-lbl">kcal</div>
+            </div>
+            <div class="tracker-stat">
+              <div class="tracker-stat-val" id="tracker-elev">0</div>
+              <div class="tracker-stat-lbl">m D+</div>
+            </div>
+          </div>
+        </div>
+        <div class="tracker-btns">
+          <button class="btn btn-primary" id="tracker-start-btn" onclick="startTracker()">▶ Démarrer</button>
+          <button class="btn btn-secondary" id="tracker-stop-btn" onclick="stopTracker()" style="display:none">⏹ Terminer</button>
+        </div>
+        <div id="tracker-status" style="text-align:center;margin-top:8px;font-size:12px;color:var(--text2);"></div>
+      </div>
+
+      <!-- SAISIE MANUELLE -->
+      <div class="card">
+        <div class="section-title">✏️ Saisie manuelle</div>
+        <div class="section-title" style="margin-bottom:8px;">Type d'activité</div>
+        <div class="type-grid" id="manual-type-grid">
+          <button class="type-btn selected-marche" data-type="marche" onclick="selectManualType('marche')">🚶 Marche</button>
+          <button class="type-btn" data-type="course" onclick="selectManualType('course')">🏃 Course</button>
+          <button class="type-btn" data-type="velo" onclick="selectManualType('velo')">🚴 Vélo</button>
+          <button class="type-btn" data-type="randonnee" onclick="selectManualType('randonnee')">🥾 Rando</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nom de l'activité</label>
+          <input class="form-input" id="m-name" placeholder="Ex: Tour du lac">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input class="form-input" id="m-date" type="date">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Distance (km)</label>
+            <input class="form-input" id="m-dist" type="number" step="0.1" placeholder="5.2">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Durée (min)</label>
+            <input class="form-input" id="m-dur" type="number" placeholder="45">
+          </div>
+          <div class="form-group">
+            <label class="form-label">D+ (m) optionnel</label>
+            <input class="form-input" id="m-elev" type="number" placeholder="120">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveManual()">Enregistrer</button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div id="screen-stats" class="screen">
+      <div class="page-header">
+        <h1>Statistiques</h1>
+        <p>Vue d'ensemble de tes performances</p>
+      </div>
+
+      <div class="tabs" id="stats-period-tabs">
+        <button class="tab active" data-period="week" onclick="setPeriod('week')">7j</button>
+        <button class="tab" data-period="month" onclick="setPeriod('month')">30j</button>
+        <button class="tab" data-period="year" onclick="setPeriod('year')">1 an</button>
+        <button class="tab" data-period="all" onclick="setPeriod('all')">Tout</button>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card c1">
+          <div class="stat-label">Sessions</div>
+          <div class="stat-value" id="s-sessions">0</div>
+        </div>
+        <div class="stat-card c2">
+          <div class="stat-label">Distance</div>
+          <div class="stat-value" id="s-dist">0<span class="stat-unit">km</span></div>
+        </div>
+        <div class="stat-card c3">
+          <div class="stat-label">Calories</div>
+          <div class="stat-value" id="s-cal">0<span class="stat-unit">k</span></div>
+        </div>
+        <div class="stat-card c4">
+          <div class="stat-label">Temps</div>
+          <div class="stat-value" id="s-time">0<span class="stat-unit">h</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Distance par activité</div>
+        <canvas id="chart-dist" height="180"></canvas>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Calories brûlées</div>
+        <canvas id="chart-cal" height="180"></canvas>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Répartition des activités</div>
+        <canvas id="chart-types" height="180"></canvas>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Vitesse moyenne</div>
+        <canvas id="chart-speed" height="180"></canvas>
+      </div>
+    </div>
+
+    <!-- PROFIL -->
+    <div id="screen-profile" class="screen">
+      <div class="page-header">
+        <h1>Profil</h1>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div class="profile-avatar" id="profile-avatar">?</div>
+        <div style="font-size:20px;font-weight:800;" id="profile-name">—</div>
+        <div style="font-size:13px;color:var(--text2);font-family:var(--mono);margin-top:4px;" id="profile-sub">—</div>
+      </div>
+      <div class="card">
+        <div class="section-title">Modifier le profil</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Prénom</label>
+            <input class="form-input" id="p-name">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Âge</label>
+            <input class="form-input" id="p-age" type="number">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Poids (kg)</label>
+            <input class="form-input" id="p-weight" type="number">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Taille (cm)</label>
+            <input class="form-input" id="p-height" type="number">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sexe</label>
+          <select class="form-select" id="p-sex">
+            <option value="M">Homme</option>
+            <option value="F">Femme</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="updateProfile()">Sauvegarder</button>
+      </div>
+      <div class="card">
+        <div class="section-title">Données</div>
+        <button class="btn btn-secondary" style="margin-bottom:8px;" onclick="exportData()">📤 Exporter les données (JSON)</button>
+        <button class="btn btn-danger" onclick="confirmClear()">🗑️ Supprimer toutes les données</button>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+  <!-- BOTTOM NAV -->
+  <nav>
+    <button class="nav-btn active" data-screen="dash" onclick="showScreen('dash')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Accueil
+    </button>
+    <button class="nav-btn" data-screen="activities" onclick="showScreen('activities')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Activités
+    </button>
+    <button class="nav-btn" data-screen="add" onclick="showScreen('add')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+      Ajouter
+    </button>
+    <button class="nav-btn" data-screen="stats" onclick="showScreen('stats')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      Stats
+    </button>
+    <button class="nav-btn" data-screen="profile" onclick="showScreen('profile')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      Profil
+    </button>
+  </nav>
+</div>
+
+<!-- ACTIVITY DETAIL MODAL -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div class="modal-title" id="detail-title">Activité</div>
+      <button class="btn btn-danger btn-sm" onclick="deleteActivity(currentDetailId)">Supprimer</button>
+    </div>
+    <div id="detail-badge" style="margin-bottom:14px;"></div>
+    <div class="detail-stat-grid" id="detail-stats"></div>
+    <div id="detail-extra"></div>
+    <button class="btn btn-secondary" onclick="closeModal('detail-modal')" style="margin-top:8px;">Fermer</button>
+  </div>
+</div>
+
+<!-- GPX PREVIEW MODAL -->
+<div class="modal-overlay" id="gpx-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Importer cette activité</div>
+    <div id="gpx-preview"></div>
+    <div class="form-group" style="margin-top:12px;">
+      <label class="form-label">Nom de l'activité</label>
+      <input class="form-input" id="gpx-name" placeholder="Ma randonnée">
+    </div>
+    <div class="type-grid" id="gpx-type-grid" style="margin-bottom:14px;">
+      <button class="type-btn selected-randonnee" data-type="randonnee" onclick="selectGpxType('randonnee')">🥾 Rando</button>
+      <button class="type-btn" data-type="marche" onclick="selectGpxType('marche')">🚶 Marche</button>
+      <button class="type-btn" data-type="course" onclick="selectGpxType('course')">🏃 Course</button>
+      <button class="type-btn" data-type="velo" onclick="selectGpxType('velo')">🚴 Vélo</button>
+    </div>
+    <button class="btn btn-primary" onclick="confirmGPX()">✓ Importer</button>
+    <button class="btn btn-secondary" onclick="closeModal('gpx-modal')" style="margin-top:8px;">Annuler</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ===========================
+// DATA LAYER
+// ===========================
+let profile = JSON.parse(localStorage.getItem('sh_profile') || 'null');
+let activities = JSON.parse(localStorage.getItem('sh_activities') || '[]');
+
+function saveData() {
+  localStorage.setItem('sh_activities', JSON.stringify(activities));
+  localStorage.setItem('sh_profile', JSON.stringify(profile));
+}
+
+// ===========================
+// ONBOARDING
+// ===========================
+function checkOnboarding() {
+  if (profile) {
+    document.getElementById('onboarding').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    initApp();
+  }
+}
+
+function saveProfile() {
+  const name = document.getElementById('ob-name').value.trim();
+  const age = parseInt(document.getElementById('ob-age').value);
+  const weight = parseFloat(document.getElementById('ob-weight').value);
+  const height = parseFloat(document.getElementById('ob-height').value);
+  const sex = document.getElementById('ob-sex').value;
+  if (!name || !age || !weight || !height) { showToast('Remplis tous les champs'); return; }
+  profile = { name, age, weight, height, sex };
+  saveData();
+  document.getElementById('onboarding').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  initApp();
+}
+
+function initApp() {
+  const now = new Date();
+  document.getElementById('dash-date').textContent = now.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const h = now.getHours();
+  const greet = h < 12 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir';
+  document.getElementById('dash-greeting').textContent = `${greet} ${profile.name} 👋`;
+
+  // Set today date on manual form
+  document.getElementById('m-date').value = now.toISOString().split('T')[0];
+
+  loadProfile();
+  updateDashboard();
+  updateActivitiesList('all');
+  renderStatsCharts('week');
+  setupDragDrop();
+}
+
+// ===========================
+// CALORIES (MET)
+// ===========================
+const MET = { marche: 3.5, course: 9.8, velo: 7.5, randonnee: 6.0 };
+
+function calcCalories(type, durationMin, distKm) {
+  if (!profile) return 0;
+  const met = MET[type] || 4;
+  // kcal = MET × weight(kg) × duration(h)
+  return Math.round(met * profile.weight * (durationMin / 60));
+}
+
+// ===========================
+// NAVIGATION
+// ===========================
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`screen-${name}`).classList.add('active');
+  document.querySelector(`.nav-btn[data-screen="${name}"]`).classList.add('active');
+  if (name === 'stats') renderStatsCharts(currentPeriod);
+  if (name === 'activities') updateActivitiesList(currentFilter);
+  if (name === 'profile') loadProfile();
+  if (name === 'dash') updateDashboard();
+}
+
+// ===========================
+// DASHBOARD
+// ===========================
+function updateDashboard() {
+  const total = activities.length;
+  const dist = activities.reduce((a, v) => a + (v.distance || 0), 0);
+  const cal = activities.reduce((a, v) => a + (v.calories || 0), 0);
+  const time = activities.reduce((a, v) => a + (v.duration || 0), 0);
+
+  document.getElementById('total-sessions').textContent = total;
+  document.getElementById('total-distance').innerHTML = `${dist.toFixed(1)}<span class="stat-unit">km</span>`;
+  document.getElementById('total-cal').innerHTML = `${(cal/1000).toFixed(1)}<span class="stat-unit">k</span>`;
+  document.getElementById('total-time').innerHTML = `${(time/60).toFixed(1)}<span class="stat-unit">h</span>`;
+
+  renderWeekBars();
+  renderRecentList();
+}
+
+function renderWeekBars() {
+  const container = document.getElementById('week-bars');
+  const labelsEl = document.getElementById('week-labels');
+  const days = [];
+  const now = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now); d.setDate(now.getDate() - i);
+    days.push(d);
+  }
+  const dayData = days.map(d => {
+    const key = d.toISOString().split('T')[0];
+    return activities.filter(a => a.date && a.date.startsWith(key)).reduce((s, a) => s + (a.calories || 0), 0);
+  });
+  const max = Math.max(...dayData, 1);
+  const colors = ['#00e5ff','#00e5ff','#00e5ff','#00e5ff','#00e5ff','#00e5ff','#ff6b35'];
+  container.innerHTML = dayData.map((v, i) => `
+    <div class="week-bar-wrap">
+      <div class="week-bar" style="height:${Math.max(4,(v/max)*100)}%;background:${colors[i] || '#00e5ff'};opacity:${v>0?1:0.2};"></div>
+    </div>`).join('');
+  const jours = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  labelsEl.innerHTML = days.map((d,i) => `<div style="flex:1;text-align:center;font-size:9px;color:var(--text2);font-family:var(--mono);">${jours[d.getDay()]}</div>`).join('');
+}
+
+function renderRecentList() {
+  const el = document.getElementById('recent-list');
+  const recent = [...activities].sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0, 5);
+  if (!recent.length) {
+    el.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg><p>Aucune activité encore.<br>Ajoutes-en une !</p></div>`;
+    return;
+  }
+  el.innerHTML = recent.map(a => activityCard(a)).join('');
+}
+
+// ===========================
+// ACTIVITY CARD
+// ===========================
+const typeColor = { marche: 'var(--walk)', course: 'var(--run)', velo: 'var(--bike)', randonnee: 'var(--hike)' };
+const typeEmoji = { marche: '🚶', course: '🏃', velo: '🚴', randonnee: '🥾' };
+
+function activityCard(a) {
+  const col = typeColor[a.type] || 'var(--accent)';
+  const date = a.date ? new Date(a.date).toLocaleDateString('fr-FR', {day:'numeric', month:'short', year:'numeric'}) : '';
+  return `
+  <div class="activity-item" onclick="openDetail('${a.id}')">
+    <div class="color-bar" style="background:${col};"></div>
+    <div class="ai-header">
+      <div>
+        <div class="ai-name">${a.name || 'Activité'}</div>
+        <div style="margin-top:4px;"><span class="badge ${a.type}">${typeEmoji[a.type] || ''} ${a.type}</span></div>
+      </div>
+      <div class="ai-date">${date}</div>
+    </div>
+    <div class="ai-stats">
+      <div class="ai-stat"><div class="ai-stat-val">${(a.distance||0).toFixed(2)}</div><div class="ai-stat-lbl">km</div></div>
+      <div class="ai-stat"><div class="ai-stat-val">${formatDur(a.duration||0)}</div><div class="ai-stat-lbl">durée</div></div>
+      <div class="ai-stat"><div class="ai-stat-val">${a.calories||0}</div><div class="ai-stat-lbl">kcal</div></div>
+      <div class="ai-stat"><div class="ai-stat-val">${(a.avgSpeed||0).toFixed(1)}</div><div class="ai-stat-lbl">km/h</div></div>
+      ${a.elevGain ? `<div class="ai-stat"><div class="ai-stat-val">${a.elevGain}</div><div class="ai-stat-lbl">D+m</div></div>` : ''}
+    </div>
+  </div>`;
+}
+
+function formatDur(min) {
+  const h = Math.floor(min/60), m = min%60;
+  return h > 0 ? `${h}h${m.toString().padStart(2,'0')}` : `${m}min`;
+}
+
+// ===========================
+// ACTIVITIES SCREEN
+// ===========================
+let currentFilter = 'all';
+
+document.querySelectorAll('#filter-tabs .tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#filter-tabs .tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    updateActivitiesList(currentFilter);
+  });
+});
+
+function updateActivitiesList(filter) {
+  const list = document.getElementById('activities-list');
+  let filtered = [...activities].sort((a,b) => new Date(b.date)-new Date(a.date));
+  if (filter !== 'all') filtered = filtered.filter(a => a.type === filter);
+  document.getElementById('act-count').textContent = `${filtered.length} activité${filtered.length>1?'s':''} enregistrée${filtered.length>1?'s':''}`;
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg><p>Aucune activité dans cette catégorie.</p></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(a => activityCard(a)).join('');
+}
+
+// ===========================
+// DETAIL MODAL
+// ===========================
+let currentDetailId = null;
+
+function openDetail(id) {
+  const a = activities.find(x => x.id === id);
+  if (!a) return;
+  currentDetailId = id;
+  document.getElementById('detail-title').textContent = a.name || 'Activité';
+  document.getElementById('detail-badge').innerHTML = `<span class="badge ${a.type}">${typeEmoji[a.type]} ${a.type}</span> <span style="color:var(--text2);font-size:12px;font-family:var(--mono);margin-left:8px;">${a.date ? new Date(a.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) : ''}</span>`;
+  document.getElementById('detail-stats').innerHTML = [
+    { val: `${(a.distance||0).toFixed(2)} km`, lbl: 'Distance' },
+    { val: formatDur(a.duration||0), lbl: 'Durée' },
+    { val: `${a.calories||0} kcal`, lbl: 'Calories' },
+    { val: `${(a.avgSpeed||0).toFixed(1)} km/h`, lbl: 'Vitesse moy.' },
+    { val: `${(a.maxSpeed||0).toFixed(1)} km/h`, lbl: 'Vitesse max' },
+    { val: a.elevGain ? `${a.elevGain} m` : '—', lbl: 'Dénivelé +' },
+  ].map(s => `<div class="detail-stat"><div class="detail-stat-val">${s.val}</div><div class="detail-stat-lbl">${s.lbl}</div></div>`).join('');
+  let extra = '';
+  if (a.source) extra += `<div style="font-size:12px;color:var(--text2);font-family:var(--mono);margin-bottom:8px;">Source : ${a.source}</div>`;
+  if (a.notes) extra += `<div style="font-size:13px;color:var(--text2);margin-bottom:8px;">${a.notes}</div>`;
+  document.getElementById('detail-extra').innerHTML = extra;
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+function deleteActivity(id) {
+  if (!id) return;
+  activities = activities.filter(a => a.id !== id);
+  saveData();
+  closeModal('detail-modal');
+  updateDashboard();
+  updateActivitiesList(currentFilter);
+  showToast('Activité supprimée');
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ===========================
+// MANUAL INPUT
+// ===========================
+let manualType = 'marche';
+
+function selectManualType(type) {
+  manualType = type;
+  document.querySelectorAll('#manual-type-grid .type-btn').forEach(b => {
+    b.className = `type-btn${b.dataset.type === type ? ` selected-${type}` : ''}`;
+  });
+}
+
+function saveManual() {
+  const name = document.getElementById('m-name').value.trim() || `${manualType} du ${document.getElementById('m-date').value}`;
+  const date = document.getElementById('m-date').value;
+  const dist = parseFloat(document.getElementById('m-dist').value);
+  const dur = parseFloat(document.getElementById('m-dur').value);
+  const elev = parseFloat(document.getElementById('m-elev').value) || 0;
+  if (!date || isNaN(dist) || isNaN(dur)) { showToast('Remplis distance, durée et date'); return; }
+  const cal = calcCalories(manualType, dur, dist);
+  const avg = dur > 0 ? (dist / (dur/60)) : 0;
+  const a = { id: genId(), name, type: manualType, date: date+'T12:00:00', distance: dist, duration: dur, calories: cal, avgSpeed: avg, maxSpeed: avg * 1.3, elevGain: elev || null, source: 'Manuel' };
+  activities.push(a);
+  saveData();
+  document.getElementById('m-name').value = '';
+  document.getElementById('m-dist').value = '';
+  document.getElementById('m-dur').value = '';
+  document.getElementById('m-elev').value = '';
+  updateDashboard();
+  updateActivitiesList(currentFilter);
+  showToast('✓ Activité enregistrée !');
+  showScreen('activities');
+}
+
+// ===========================
+// GPS TRACKER
+// ===========================
+let trackerType = 'marche';
+let trackerRunning = false;
+let trackerInterval = null;
+let watchId = null;
+let trackerStart = null;
+let trackerPositions = [];
+let trackerElapsed = 0;
+
+function selectTrackerType(type) {
+  trackerType = type;
+  document.querySelectorAll('#tracker-type-grid .type-btn').forEach(b => {
+    b.className = `type-btn${b.dataset.type === type ? ` selected-${type}` : ''}`;
+  });
+}
+
+function startTracker() {
+  if (!navigator.geolocation) { showToast('GPS non disponible sur ce navigateur'); return; }
+  trackerRunning = true;
+  trackerStart = Date.now();
+  trackerPositions = [];
+  trackerElapsed = 0;
+  document.getElementById('tracker-start-btn').style.display = 'none';
+  document.getElementById('tracker-stop-btn').style.display = 'block';
+  document.getElementById('tracker-status').innerHTML = `<span class="pulse-dot"></span>GPS actif…`;
+
+  trackerInterval = setInterval(() => {
+    trackerElapsed = Math.floor((Date.now() - trackerStart) / 1000);
+    const h = Math.floor(trackerElapsed/3600), m = Math.floor((trackerElapsed%3600)/60), s = trackerElapsed%60;
+    document.getElementById('tracker-time').textContent = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    const dist = calcTrackerDist();
+    document.getElementById('tracker-dist').textContent = `${dist.toFixed(2)} km`;
+    const speed = trackerElapsed > 0 ? dist / (trackerElapsed/3600) : 0;
+    document.getElementById('tracker-speed').textContent = speed.toFixed(1);
+    const cal = calcCalories(trackerType, trackerElapsed/60, dist);
+    document.getElementById('tracker-cal').textContent = cal;
+    document.getElementById('tracker-elev').textContent = calcTrackerElev();
+  }, 1000);
+
+  watchId = navigator.geolocation.watchPosition(pos => {
+    trackerPositions.push({ lat: pos.coords.latitude, lng: pos.coords.longitude, alt: pos.coords.altitude, acc: pos.coords.accuracy });
+  }, err => {
+    document.getElementById('tracker-status').innerHTML = `⚠️ GPS: ${err.message}`;
+  }, { enableHighAccuracy: true, maximumAge: 0 });
+}
+
+function stopTracker() {
+  if (!trackerRunning) return;
+  clearInterval(trackerInterval);
+  navigator.geolocation.clearWatch(watchId);
+  trackerRunning = false;
+  document.getElementById('tracker-start-btn').style.display = 'block';
+  document.getElementById('tracker-stop-btn').style.display = 'none';
+  document.getElementById('tracker-status').textContent = '';
+
+  const dist = calcTrackerDist();
+  const dur = Math.round(trackerElapsed / 60);
+  const cal = calcCalories(trackerType, dur, dist);
+  const speed = dur > 0 ? dist / (dur/60) : 0;
+  const elev = calcTrackerElev();
+
+  if (dur < 1) { showToast('Activité trop courte'); resetTracker(); return; }
+
+  const a = {
+    id: genId(), name: `${trackerType} en direct`, type: trackerType,
+    date: new Date().toISOString(), distance: dist, duration: dur,
+    calories: cal, avgSpeed: speed, maxSpeed: speed * 1.3,
+    elevGain: elev || null, source: 'GPS Live'
+  };
+  activities.push(a);
+  saveData();
+  resetTracker();
+  updateDashboard();
+  updateActivitiesList(currentFilter);
+  showToast('✓ Activité sauvegardée !');
+  showScreen('activities');
+}
+
+function resetTracker() {
+  document.getElementById('tracker-time').textContent = '00:00:00';
+  document.getElementById('tracker-dist').textContent = '0.00 km';
+  document.getElementById('tracker-speed').textContent = '0.0';
+  document.getElementById('tracker-cal').textContent = '0';
+  document.getElementById('tracker-elev').textContent = '0';
+  trackerPositions = [];
+}
+
+function calcTrackerDist() {
+  if (trackerPositions.length < 2) return 0;
+  let total = 0;
+  for (let i = 1; i < trackerPositions.length; i++) {
+    total += haversine(trackerPositions[i-1].lat, trackerPositions[i-1].lng, trackerPositions[i].lat, trackerPositions[i].lng);
+  }
+  return total;
+}
+
+function calcTrackerElev() {
+  if (trackerPositions.length < 2) return 0;
+  let gain = 0;
+  for (let i = 1; i < trackerPositions.length; i++) {
+    const diff = (trackerPositions[i].alt || 0) - (trackerPositions[i-1].alt || 0);
+    if (diff > 0) gain += diff;
+  }
+  return Math.round(gain);
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ===========================
+// GPX PARSER
+// ===========================
+let gpxParsed = null;
+let gpxType = 'randonnee';
+
+function setupDragDrop() {
+  const drop = document.getElementById('gpx-drop');
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) parseGPXFile(file);
+  });
+}
+
+function handleGPX(input) {
+  if (input.files[0]) parseGPXFile(input.files[0]);
+}
+
+function parseGPXFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(e.target.result, 'text/xml');
+      const trkpts = doc.querySelectorAll('trkpt');
+      if (!trkpts.length) { showToast('Fichier GPX invalide ou vide'); return; }
+
+      const points = Array.from(trkpts).map(pt => ({
+        lat: parseFloat(pt.getAttribute('lat')),
+        lng: parseFloat(pt.getAttribute('lon')),
+        ele: parseFloat(pt.querySelector('ele')?.textContent || '0'),
+        time: pt.querySelector('time')?.textContent || null
+      }));
+
+      // Distance
+      let dist = 0;
+      for (let i = 1; i < points.length; i++) dist += haversine(points[i-1].lat, points[i-1].lng, points[i].lat, points[i].lng);
+
+      // Elevation gain
+      let elevGain = 0;
+      for (let i = 1; i < points.length; i++) {
+        const diff = points[i].ele - points[i-1].ele;
+        if (diff > 0) elevGain += diff;
+      }
+
+      // Duration
+      let durationMin = 0;
+      if (points[0].time && points[points.length-1].time) {
+        const t1 = new Date(points[0].time), t2 = new Date(points[points.length-1].time);
+        durationMin = Math.round((t2 - t1) / 60000);
+      }
+
+      // Max speed
+      let maxSpeed = 0;
+      for (let i = 1; i < points.length; i++) {
+        if (!points[i].time || !points[i-1].time) continue;
+        const dt = (new Date(points[i].time) - new Date(points[i-1].time)) / 3600000;
+        if (dt > 0) { const s = haversine(points[i-1].lat, points[i-1].lng, points[i].lat, points[i].lng) / dt; if (s > maxSpeed) maxSpeed = s; }
+      }
+
+      // Detect type from avg speed
+      const avgSpeed = durationMin > 0 ? dist / (durationMin / 60) : 0;
+      let autoType = avgSpeed < 3 ? 'randonnee' : avgSpeed < 7 ? 'marche' : avgSpeed < 15 ? 'course' : 'velo';
+
+      // Track name
+      const trackName = doc.querySelector('name')?.textContent || file.name.replace('.gpx','');
+      const startDate = points[0].time ? new Date(points[0].time).toISOString() : new Date().toISOString();
+
+      gpxParsed = { dist, elevGain: Math.round(elevGain), durationMin, avgSpeed, maxSpeed, trackName, startDate, autoType };
+      gpxType = autoType;
+
+      // Show preview
+      document.getElementById('gpx-name').value = trackName;
+      selectGpxType(autoType);
+      document.getElementById('gpx-preview').innerHTML = `
+        <div class="detail-stat-grid" style="margin-bottom:12px;">
+          <div class="detail-stat"><div class="detail-stat-val">${dist.toFixed(2)} km</div><div class="detail-stat-lbl">Distance</div></div>
+          <div class="detail-stat"><div class="detail-stat-val">${formatDur(durationMin)}</div><div class="detail-stat-lbl">Durée</div></div>
+          <div class="detail-stat"><div class="detail-stat-val">${Math.round(elevGain)} m</div><div class="detail-stat-lbl">D+</div></div>
+          <div class="detail-stat"><div class="detail-stat-val">${avgSpeed.toFixed(1)}</div><div class="detail-stat-lbl">km/h moy</div></div>
+          <div class="detail-stat"><div class="detail-stat-val">${maxSpeed.toFixed(1)}</div><div class="detail-stat-lbl">km/h max</div></div>
+          <div class="detail-stat"><div class="detail-stat-val">${points.length}</div><div class="detail-stat-lbl">Points GPS</div></div>
+        </div>`;
+      document.getElementById('gpx-modal').classList.add('open');
+    } catch(err) { showToast('Erreur lecture GPX'); console.error(err); }
+  };
+  reader.readAsText(file);
+}
+
+function selectGpxType(type) {
+  gpxType = type;
+  document.querySelectorAll('#gpx-type-grid .type-btn').forEach(b => {
+    b.className = `type-btn${b.dataset.type === type ? ` selected-${type}` : ''}`;
+  });
+}
+
+function confirmGPX() {
+  if (!gpxParsed) return;
+  const name = document.getElementById('gpx-name').value.trim() || gpxParsed.trackName;
+  const cal = calcCalories(gpxType, gpxParsed.durationMin, gpxParsed.dist);
+  const a = {
+    id: genId(), name, type: gpxType, date: gpxParsed.startDate,
+    distance: gpxParsed.dist, duration: gpxParsed.durationMin,
+    calories: cal, avgSpeed: gpxParsed.avgSpeed, maxSpeed: gpxParsed.maxSpeed,
+    elevGain: gpxParsed.elevGain, source: 'GPX Import'
+  };
+  activities.push(a);
+  saveData();
+  closeModal('gpx-modal');
+  document.getElementById('gpx-input').value = '';
+  gpxParsed = null;
+  updateDashboard();
+  updateActivitiesList(currentFilter);
+  showToast('✓ GPX importé avec succès !');
+  showScreen('activities');
+}
+
+// ===========================
+// STATS & CHARTS
+// ===========================
+let currentPeriod = 'week';
+let charts = {};
+
+function setPeriod(p) {
+  currentPeriod = p;
+  document.querySelectorAll('#stats-period-tabs .tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.period === p);
+  });
+  renderStatsCharts(p);
+}
+
+function filterByPeriod(p) {
+  const now = new Date();
+  return activities.filter(a => {
+    if (!a.date) return false;
+    const d = new Date(a.date);
+    if (p === 'week') return (now - d) <= 7*24*3600*1000;
+    if (p === 'month') return (now - d) <= 30*24*3600*1000;
+    if (p === 'year') return (now - d) <= 365*24*3600*1000;
+    return true;
+  });
+}
+
+function renderStatsCharts(p) {
+  const data = filterByPeriod(p);
+  document.getElementById('s-sessions').textContent = data.length;
+  document.getElementById('s-dist').innerHTML = `${data.reduce((a,v) => a+(v.distance||0),0).toFixed(1)}<span class="stat-unit">km</span>`;
+  document.getElementById('s-cal').innerHTML = `${(data.reduce((a,v) => a+(v.calories||0),0)/1000).toFixed(1)}<span class="stat-unit">k</span>`;
+  document.getElementById('s-time').innerHTML = `${(data.reduce((a,v) => a+(v.duration||0),0)/60).toFixed(1)}<span class="stat-unit">h</span>`;
+
+  destroyCharts();
+
+  const sorted = [...data].sort((a,b) => new Date(a.date)-new Date(b.date));
+  const labels = sorted.map(a => new Date(a.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}));
+  const cfg = { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#7a8db0', font: { size: 10 } }, grid: { color: '#1e2d4a' } }, y: { ticks: { color: '#7a8db0', font: { size: 10 } }, grid: { color: '#1e2d4a' } } } };
+
+  // Distance
+  charts.dist = new Chart(document.getElementById('chart-dist'), {
+    type: 'bar', data: { labels, datasets: [{ data: sorted.map(a => a.distance||0), backgroundColor: sorted.map(a => typeColor[a.type]||'var(--accent)'), borderRadius: 6, borderSkipped: false }] },
+    options: { ...cfg, plugins: { ...cfg.plugins }, scales: { ...cfg.scales, y: { ...cfg.scales.y, title: { display: true, text: 'km', color: '#7a8db0', font:{size:10} } } } }
+  });
+
+  // Calories
+  charts.cal = new Chart(document.getElementById('chart-cal'), {
+    type: 'line', data: { labels, datasets: [{ data: sorted.map(a => a.calories||0), borderColor: '#ff6b35', backgroundColor: 'rgba(255,107,53,0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#ff6b35', pointRadius: 4 }] },
+    options: { ...cfg, scales: { ...cfg.scales, y: { ...cfg.scales.y, title: { display: true, text: 'kcal', color: '#7a8db0', font:{size:10} } } } }
+  });
+
+  // Types pie
+  const types = ['marche','course','velo','randonnee'];
+  const typeCounts = types.map(t => data.filter(a => a.type === t).length);
+  charts.types = new Chart(document.getElementById('chart-types'), {
+    type: 'doughnut',
+    data: { labels: ['Marche','Course','Vélo','Rando'], datasets: [{ data: typeCounts, backgroundColor: ['rgba(0,229,255,0.8)','rgba(255,107,53,0.8)','rgba(127,255,107,0.8)','rgba(255,204,0,0.8)'], borderWidth: 0 }] },
+    options: { responsive: true, plugins: { legend: { display: true, labels: { color: '#7a8db0', font: { size: 11 }, boxWidth: 12 } } } }
+  });
+
+  // Speed
+  charts.speed = new Chart(document.getElementById('chart-speed'), {
+    type: 'line', data: { labels, datasets: [{ data: sorted.map(a => (a.avgSpeed||0).toFixed(1)), borderColor: '#7fff6b', backgroundColor: 'rgba(127,255,107,0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#7fff6b', pointRadius: 4 }] },
+    options: { ...cfg, scales: { ...cfg.scales, y: { ...cfg.scales.y, title: { display: true, text: 'km/h', color: '#7a8db0', font:{size:10} } } } }
+  });
+}
+
+function destroyCharts() {
+  Object.values(charts).forEach(c => c?.destroy());
+  charts = {};
+}
+
+// ===========================
+// PROFILE
+// ===========================
+function loadProfile() {
+  if (!profile) return;
+  document.getElementById('p-name').value = profile.name || '';
+  document.getElementById('p-age').value = profile.age || '';
+  document.getElementById('p-weight').value = profile.weight || '';
+  document.getElementById('p-height').value = profile.height || '';
+  document.getElementById('p-sex').value = profile.sex || 'M';
+  document.getElementById('profile-name').textContent = profile.name;
+  document.getElementById('profile-sub').textContent = `${profile.age} ans · ${profile.weight} kg · ${profile.height} cm`;
+  document.getElementById('profile-avatar').textContent = profile.name ? profile.name[0].toUpperCase() : '?';
+}
+
+function updateProfile() {
+  profile.name = document.getElementById('p-name').value.trim();
+  profile.age = parseInt(document.getElementById('p-age').value);
+  profile.weight = parseFloat(document.getElementById('p-weight').value);
+  profile.height = parseFloat(document.getElementById('p-height').value);
+  profile.sex = document.getElementById('p-sex').value;
+  saveData();
+  loadProfile();
+  showToast('✓ Profil mis à jour');
+}
+
+function exportData() {
+  const data = { profile, activities, exportDate: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `sporthub-export-${new Date().toISOString().split('T')[0]}.json`; a.click();
+}
+
+function confirmClear() {
+  if (confirm('Supprimer TOUTES tes activités ? Cette action est irréversible.')) {
+    activities = []; saveData(); updateDashboard(); updateActivitiesList('all'); showToast('Données supprimées');
+  }
+}
+
+// ===========================
+// UTILS
+// ===========================
+function genId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ===========================
+// INIT
+// ===========================
+checkOnboarding();
+</script>
+</body>
+</html>
